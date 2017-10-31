@@ -17,41 +17,16 @@
  * Definice klíčových a rezervovaných slov
  */
 
+#include "str.h"
+
 //identifikatory
 #define ID 0
-//klicova slova
-#define AS 1
-#define ASC 2
-#define DECLARE 3
-#define DIM 4
-#define DO 5
-#define DOUBLE 6
-#define ELSE 7
-#define END 8
-#define CHR 9
-#define FUNCTION 10
-#define IF 11
-#define INPUT 12
-#define INTEGER 13
-#define LENGTH 14
-#define LOOP 15
-#define PRINT 16
-#define RETURN 17
-#define SCOPE 18
-#define STRING 19
-#define SUBSTR 20
-#define THEN 21
-#define WHILE 22
-
+//klicova slova - ulozene ve value
+#define KEYWORD 5
 //literaly
 #define INT_LITERAL 23
 #define DOUBLE_LITERAL 24
 #define STRING_LITERAL 25
-
-//Komentare
-#define COM_ONE_LINE 26     // '''
-#define COM_START 27        // '/''
-#define COM_END 28          // ''/'
 
 //Operatory
 #define PLUS 29             // '+'
@@ -74,26 +49,12 @@
 #define LEX_ERR 100         // pri chybe
 
 //Klicova slova - rozsireni
-/*
-#define AND 50
-#define BOOLEAN 51
-#define CONTINUE 52
-#define ELSEIF 53
-#define EXIT 54
-#define FALSE 55
-#define FOR 56
-#define NEXT 57
-#define NOT 58
-#define OR 59
-#define SHARED 60
-#define STATIC 61
-#define TRUE 62
- */
+
 
 //struktura typu tokenu
 typedef struct {
     int type;      //typ tokenu
-    char *value;    //pokud je literal, pak jeho hodnota, jinak NULL
+    string *value;    //pokud je literal nebo klicove slovo, pak jeho hodnota, jinak NULL
 } tToken;
 
 extern tToken token;
@@ -101,6 +62,6 @@ extern tToken token;
 //deklarace funkci
 
 //funkce vraci ciselny kod tokenu a do value ulozi hodnotu literalu (nebo null pokud token neni literal)
-int get_token(string *value); //TODO knihovnu pro praci s retezci
+int getToken(string *value); //TODO knihovnu pro praci s retezci
 
 
