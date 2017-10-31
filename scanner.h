@@ -98,9 +98,3 @@ typedef struct {
 
 extern tToken token;
 
-//deklarace funkci
-
-//funkce vraci ciselny kod tokenu a do value ulozi hodnotu literalu (nebo null pokud token neni literal)
-int get_token(string *value); //TODO knihovnu pro praci s retezci
-
-
