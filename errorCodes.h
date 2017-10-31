@@ -9,7 +9,7 @@
  *           Michal Beranek  <xberan38@stud.fit.vutbr.cz>
  */
 
-
+#define NO_ERR 0
 #define LEX_ERR 1
 #define SYNTAX_ERR 2
 #define SEM_ERR 3

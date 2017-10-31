@@ -15,5 +15,12 @@
  * Deklarace funkci použitých při syntaktické analýze.
  */
 
+ #include "errorCodes.h"
+ #include "symtable.h"
+
  int parser();
  int scope();
+ int all();
+ int funcDefine();
+ int funcDeclare();
+ int body(bool isFunc);

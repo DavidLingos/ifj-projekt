@@ -16,9 +16,24 @@
  * Deklarace datové struktury binární vyhledávací strom a základních funkcí nad ní,
  */
 
+typedef enum{
+   tNil,
+   tInt,
+   tDouble,
+   tString
+} tType;
+
+typedef union{
+    int in;
+    double db;
+    char *st;
+} tVal;
+
 typedef struct{
    char *name;
+   bool isFunc;
    tType type;
+   tVal value;
 } tSymbol, *tSymbolPtr;
 
 typedef struct tNode{
@@ -33,7 +48,9 @@ extern tNodePtr st;
 
 
 void stInit();
-void stInsert(tNodePtr root, char *key, tSymbol data);
+void symbolInit(tSymbolPtr symbol);
+void stInsert(char *key, tSymbol data);
+void btInsert(tNodePtr root, char *key, tSymbol data);
 void stDispose();
 void btDispose(tNodePtr root);
 tNodePtr stSearch(char *key);
