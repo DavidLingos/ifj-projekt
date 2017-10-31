@@ -13,7 +13,6 @@ typedef struct
     int allocSize;	// velikost alokovane pameti
 } string;
 
-
 int strInit(string *s);
 void strFree(string *s);
 

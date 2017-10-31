@@ -50,7 +50,6 @@
 
 //Klicova slova - rozsireni
 
-
 //struktura typu tokenu
 typedef struct {
     int type;      //typ tokenu
