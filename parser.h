@@ -22,5 +22,8 @@
  int scope();
  int all();
  int funcDefine();
- int funcDeclare();
+ int funcDeclare()
+ int endFunc();
+ int assignment();
+ int input();
  int body(bool isFunc);

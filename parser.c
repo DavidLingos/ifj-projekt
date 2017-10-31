@@ -127,6 +127,18 @@ int funcDeclare()
 
 }
 
+int endFunc()
+{
+    token = get_token();
+    if(strcmp(token.value,"Function")) //Musí být End Function
+    {
+        return SYNTAX_ERR;
+    }
+    token = get_token();
+    if(token.type != SEMICOLON) return SYNTAX_ERR;
+    return NO_ERR;
+}
+
 void funcDefine()
 {
     token = get_token();
@@ -169,17 +181,16 @@ void funcDefine()
     if(strcmp(token.value,"End")) //Tělo není prázdné
     {
         error = varDeclare(); //Podívám se, jestli mám nějaké proměnné na deklarování
+        if(!strcmp(token.value,"End"))
+        {
+            return endFunc(); // Musí být End Function;
+        }
         if(error = NO_ERR) return body(1); //Zkontroluji tělo funkce
+        else return error;
     }
     else //Prázdné tělo funkce
     {
-        token = get_token();
-        if(strcmp(token.value,"Function")) //Musí být End Function
-        {
-            return SYNTAX_ERR;
-        }
-        token = get_token();
-        if(token.type != SEMICOLON) return SYNTAX_ERR; //Chybí středník
+        return endFunc(); //Musí být End Function;
     }
     token = get_token(); //Další token pro handleFunc()
     return NO_ERR;
@@ -244,13 +255,13 @@ int varDeclare()
             switch(newSymbol.type)
             {
                 case tInt:
-                    if(token.type != INT_LITERAL) return SYNTAX_ERR; //Chci int ale nedostal jsem ho
+                    if(token.type == STRING_LITERAL) return SYNTAX_ERR; //Chci int nebo double ale nedostal jsem ho
                     else
                     {
                         newSymbol.value.in = atoi(token.value);
                     }
                 case tDouble:
-                    if(token.type != DOUBLE_LITERAL) return SYNTAX_ERR; // Chci double ale nedostal jsem ho
+                    if(token.type == STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
                     else
                     {
                         newSymbol.value.db = atof(token.value);
@@ -273,7 +284,114 @@ int varDeclare()
 
 int body(bool isFunc)
 {
+    switch(token.type)
+    {
+    case ID:
+        error = assignment();
+        if(error != NO_ERR) return error;
+    case INPUT:
+        error = input();
+        //najdu proměnnou id, jestli nemám, chyba,
+        //zjistím typ
+        //vypíšu ?
+        //pkusím se načíst hodnotu
+        //pokud nejde, uložím zakladní hodnotu.
+        //zkontroluji středník a čus
+    case PRINT:
+        //TODO
+    case IF:
+        //spustím if
+    case DO:
+        //spustím for
+    case RETURN:
+        // zkontroluji jestli jsem ve funkci nebo scope pomocí funcName
+        // pokud jsem ve Funkci
+    }
+}
 
+int assignment()
+{
+    tNodePtr symPtr;
+    if(symPtr = stSearch(token.value) != NULL)
+    {
+        return SEM_ERR;
+    }
+    char *symVarName = (char *)malloc((strlen(funcName))+strlen(token.value)+3); // *func*var\0 jméno lokální proměnné
+    if(sscanf(symVarName,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
+    if(symPtr = stSearch(symVarName) == NULL) return SEM_ERR; // id nebylo deklarováno
+    else
+    {
+        token = get_token();
+        if(token.type != EQUAL) return SYNTAX_ERR; //Není rovná se
+        else
+        {
+            token = get_token();
+            if(token.type == ID) {
+                    //pořesím fci
+                if(symPtr = stSearch(token.value) == NULL) return SEM_ERR; //neznámá funkce
+                if(!(symPtr.data.type.tInt && token.type == INT_LITERAL) ||
+                    (symPtr.data.type.tDouble && token.type == DOUBLE_LITERAL) ||
+                    (symPtr.data.type.tString && token.type == STRING_LITERAL)) return SEM_ERR; // nesedí typ operatoru a funkce
+                token = get_token();
+                if(token.type != RIGHT_BRACKET) return SYNTAX_ERR;
+                //parametry
+                token = get_token();
+                if(token.type != LEFT_BRACKET) return SYNTAX_ERR;
+                token = get_token();
+                if(token.type != SEMICOLON) return SYNTAX_ERR;
+                //dostat nějak hodnotu te funkce a uložit ji
+                return fceValue();
+            }
+            if(symPtr.data.type == tInt){
+                if(token.type == STRING_LITERAL) return SYNTAX_ERR; //Chci int nebo double ale nedostal jsem ho
+                else
+                {
+                    symPtr.data.value.in = atoi(token.value);
+                }
+            }
+            if(symPtr.data.type == tDouble){
+                if(token.type == STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
+                else
+                {
+                    symPtr.data.value.db = atof(token.value);
+                }
+            }
+            if(symPtr.data.type == tString){
+                if(token.type != STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
+                else
+                {
+                    symPtr.data.value.st = atof(token.value);
+                }
+            }
+        }
+    }
+}
+
+int input()
+{
+    tNodePtr nodePtr;
+    token = get_token();
+    if(token.type != ID) SEM_ERR; //Neodstal jsem Input id
+    char *symVarName = (char *)malloc((strlen(funcName))+strlen(token.value)+3); // *func*var\0 jméno lokální proměnné
+    if(sscanf(symVarName,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
+    token = get_token();
+    if(token.type != SEMICOLON) return SYNTAX_ERR;
+    if(nodePtr = stSearch(symVarName) == NULL) return SEM_ERR; //Identifikator neni deklarovany
+    else{
+        printf("? ");
+        if(nodePtr.data.type == tInt)
+        {
+            if(!scanf("%d",&(nodePtr.data.value.in)) return TYPE_ERR; //Nepodařilo se načíst int
+        }
+        if(nodePtr.data.type == tDouble)
+        {
+            if(!scanf("%g",&(nodePtr.data.value.db)) return TYPE_ERR; //Nepodařilo se načíst double
+        }
+        if(nodePtr.data.type == tString)
+        {
+            if(!scanf("%s",nodePtr.data.value.st)) return TYPE_ERR; //Nepodařilo se načíst double
+        }
+    }
 }
 
 int scope()

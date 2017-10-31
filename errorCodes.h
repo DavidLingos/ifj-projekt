@@ -17,3 +17,5 @@
 #define FILE_ERR 5
 #define OTHER_SEM_ERR 6
 #define INTERN_ERR 99
+
+extern int error;
