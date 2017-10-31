@@ -9,7 +9,7 @@
  *           Michal Beranek  <xberan38@stud.fit.vutbr.cz>
  */
 
-
+#define NO_ERR 0
 #define LEX_ERR 1
 #define SYNTAX_ERR 2
 #define SEM_ERR 3
@@ -17,3 +17,5 @@
 #define FILE_ERR 5
 #define OTHER_SEM_ERR 6
 #define INTERN_ERR 99
+
+extern int error;

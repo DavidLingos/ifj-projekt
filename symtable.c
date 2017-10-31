@@ -27,7 +27,21 @@ void stInit()
     return;
 }
 
-void stInsert(tNodePtr root, char *key,tSymbol data)
+void symbolInit(tSymbolPtr symbol)
+{
+    if(symbol != NULL)
+    {
+        symbol->name = NULL;
+        symbol->type = NULL;
+    }
+}
+
+void stInsert(char *key,tSymbol data)
+{
+    btInsert(st,key,data);
+}
+
+void btInsert(tNodePtr root, char *key, tSymbol data)
 {
     if(root==NULL)
     {
