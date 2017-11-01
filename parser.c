@@ -30,7 +30,7 @@ int parser()
     int error;
 
 
-    token = get_token();
+    token = getToken();
 
     if(token.type == END_OF_FILE) return SYNTAX_ERR; //prázdný soubor
 
@@ -40,7 +40,7 @@ int parser()
         return error;
     }
 
-    token = get_token();
+    token = getToken();
     if(token.type != END_OF_FILE)
     //End Scope neni posledni
     {
@@ -63,7 +63,7 @@ int all()
 int handleFunc()
 {
     int error;
-    if(token.type != KEY) return SYNTAX_ERR; //Neni klicove slovo
+    if(token.type != KEYWORD) return SYNTAX_ERR; //Neni klicove slovo
     if(!strcmp(token.value,"Declare"))
     {
         error = funcDeclare(); // Deklarace funkce
@@ -88,29 +88,34 @@ int handleFunc()
 
 int funcDeclare()
 {
-    token = get_token();
+    token = getToken();
 
     if(strcmp(token.value,"Function")) return SYNTAX_ERR; //Musí být Declare Function
 
-    token = get_token();
+    token = getToken();
 
     if(token.type != ID) return SYNTAX_ERR; //Musí být Declare Function id
     tSymbol newSymbol; //novy zaznam do tabulky symbolu
-    symbolInit(&symbol);
+    symbolInit(&newSymbol);
     newSymbol.name = token.value;
     newSymbol.isFunc = true; // symbol je funkce
+    funcName = newSymbol.name;
 
     if(stSearch(newSymbol.name) != NULL) return SEM_ERR; // již byla deklarována
 
+    token = getToken();
+    if(token.type != LEFT_BRACKET) return SYNTAX_ERR; // Není levá závorka
+
+
     params(); // Pořeším parametry funkce
 
-    token = get_token();
+    token = getToken();
 
     if(strcmp(token.value,"As")) return SYNTAX_ERR; //Musí být Declare Function id(params) As
 
 
-    token = get_token();
-    if(token.type != KEY) return SYNTAX_ERR; // Nepodporujici návratový typ
+    token = getToken();
+    if(token.type != KEYWORD) return SYNTAX_ERR; // Nepodporujici návratový typ
     else
     {
         if(!strcmp(token.value,"Integer")) newSymbol.type = tInt;
@@ -118,30 +123,30 @@ int funcDeclare()
         else if(!strcmp(token.value,"String")) newSymbol.type = tString;
         else return SYNTAX_ERR;
     }
-    token = get_token();
+    token = getToken();
     if(token.type != SEMICOLON) return SYNTAX_ERR; // Není středník, chyba
 
     stInsert(newSymbol.name,newSymbol); // Vložím do tabulky symbolu
 
-    token = get_token(); // Připravím další token pro funkci handleFunc
+    token = getToken(); // Připravím další token pro funkci handleFunc
 
 }
 
 int endFunc()
 {
-    token = get_token();
+    token = getToken();
     if(strcmp(token.value,"Function")) //Musí být End Function
     {
         return SYNTAX_ERR;
     }
-    token = get_token();
+    token = getToken();
     if(token.type != SEMICOLON) return SYNTAX_ERR;
     return NO_ERR;
 }
 
 void funcDefine()
 {
-    token = get_token();
+    token = getToken();
 
     if(token.type != ID) return SYNTAX_ERR; // Musí být Function id
     funcName = token.value; //Nastavím jméno funkce
@@ -152,13 +157,13 @@ void funcDefine()
     //TODO kontrola stejných parametru
     checkParams();
 
-    token = get_token();
+    token = getToken();
 
     if(strcmp(token.value,"As")) return SYNTAX_ERR; // Musí být Functionn id(params) As
 
-    token = get_token();
+    token = getToken();
     //TODO KONTROLA stejného type s deklarací
-    if(token.type != KEY) return SYNTAX_ERR;
+    if(token.type != KEYWORD) return SYNTAX_ERR;
     else
     {
         if(!strcmp(token.value,"Integer"))
@@ -176,7 +181,7 @@ void funcDefine()
         else return SYNTAX_ERR;
     }
 
-    token = get_token();
+    token = getToken();
 
     if(strcmp(token.value,"End")) //Tělo není prázdné
     {
@@ -192,16 +197,87 @@ void funcDefine()
     {
         return endFunc(); //Musí být End Function;
     }
-    token = get_token(); //Další token pro handleFunc()
+    token = getToken(); //Další token pro handleFunc()
     return NO_ERR;
+}
+
+int params()
+{
+    token = getToken();
+    if(token.type == RIGHT_BRACKET) return NO_ERR; // žádné parametry
+    if(token.type != ID) return SYNTAX_ERR; //Nemám id, chyba
+
+    tSymbol newSymbol;
+    symbolInit(&newSymbol);
+    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
+    newSymbol.isFunc = false;
+    token = getToken();
+    if(token.value != "As" || token.type != KEYWORD) return SYNTAX_ERR; // nedostal jsem As
+    token = getToken();
+    if(token.type == INTEGER)
+    {
+        newSymbol.type = tInt;
+    }
+    else if(token.type == DOUBLE)
+    {
+        newSymbol.type = tDouble;
+    }
+    else if(token.type == STRING)
+    {
+        newSymbol.type = tString;
+    }
+    else
+    {
+        return SYNTAX_ERR; //Nedostal jsem podporovaný typ
+    }
+    stInsert(newSymbol.name,newSymbol);
+
+    return nextParams();
+}
+
+int nextParams()
+{
+    token = getToken();
+    if(token.type == RIGHT_BRACKET) return NO_ERR;//žádné další parametry
+    if(token.type != CARKA) return SYNTAX_ERR; //Nenasleduje čárka za parametrem
+    if(token.type != ID) return SYNTAX_ERR; //Nemám id, chyba
+
+    tSymbol newSymbol;
+    symbolInit(&newSymbol);
+    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
+    newSymbol.isFunc = false;
+    token = getToken();
+    if(token.value != "As" || token.type != KEYWORD) return SYNTAX_ERR; // nedostal jsem As
+    token = getToken();
+    if(token.type == INTEGER)
+    {
+        newSymbol.type = tInt;
+    }
+    else if(token.type == DOUBLE)
+    {
+        newSymbol.type = tDouble;
+    }
+    else if(token.type == STRING)
+    {
+        newSymbol.type = tString;
+    }
+    else
+    {
+        return SYNTAX_ERR; //Nedostal jsem podporovaný typ
+    }
+    stInsert(newSymbol.name,newSymbol);
+
+    return nextParams();
 }
 
 int varDeclare()
 {
-    if(token.type != KEY) return NO_ERR; // zadne deklarace
+    if(token.type != KEYWORD) return NO_ERR; // zadne deklarace
     if(!strcmp(token.value,"Dim")) //Dim
     {
-        token = get_token();
+        token = getToken();
         if(token.type != ID) return SYNTAX_ERR; // Musí být Dim id
         if(stSearch(token.value) != NULL) //KDyž se ID = nazvu nadeklarované funkce
         {
@@ -219,10 +295,10 @@ int varDeclare()
         symbolInit(&newSymbol);
         newSymbol.isFunc = false;
         newSymbol.name = symVarName;
-        token = get_token();
+        token = getToken();
         if(strcmp(token.value,"As")) return SYNTAX_ERR; // Musí být Dim id As
-        token = get_token();
-        if(token.type != KEY) return SYNTAX_ERR;
+        token = getToken();
+        if(token.type != KEYWORD) return SYNTAX_ERR;
         else
         {
             if(!strcmp(token.value,"Integer"))
@@ -242,16 +318,16 @@ int varDeclare()
             }
             else return SYNTAX_ERR; //Není zadán podporovaný datový typ
         }
-        token = get_token();
+        token = getToken();
         if(token.type == SEMICOLON)
         {
             stInsert(symVarName,newSymbol);
-            token = get_token(); //Další token pro varDeclare
+            token = getToken(); //Další token pro varDeclare
             return varDeclare();
         }
         else if(token.type == EQUAL) //Nastavení hodnoty
         {
-            token = get_token();
+            token = getToken();
             switch(newSymbol.type)
             {
                 case tInt:
@@ -276,7 +352,7 @@ int varDeclare()
             stInsert(symVarName,newSymbol); //Vložím do tabulky symbolů
         }
         else return SYNTAX_ERR; //Nemám ani středník ani =
-        token = get_token(); //Nachystám daší token pro varDeclare
+        token = getToken(); //Nachystám daší token pro varDeclare
         return varDeclare();
     }
     return NO_ERR;
@@ -289,14 +365,11 @@ int body(bool isFunc)
     case ID:
         error = assignment();
         if(error != NO_ERR) return error;
+        break;
     case INPUT:
         error = input();
-        //najdu proměnnou id, jestli nemám, chyba,
-        //zjistím typ
-        //vypíšu ?
-        //pkusím se načíst hodnotu
-        //pokud nejde, uložím zakladní hodnotu.
-        //zkontroluji středník a čus
+        if(error != NO_ERR) return error;
+        break;
     case PRINT:
         //TODO
     case IF:
@@ -307,6 +380,11 @@ int body(bool isFunc)
         // zkontroluji jestli jsem ve funkci nebo scope pomocí funcName
         // pokud jsem ve Funkci
     }
+}
+
+int return()
+{
+
 }
 
 int assignment()
@@ -321,23 +399,23 @@ int assignment()
     if(symPtr = stSearch(symVarName) == NULL) return SEM_ERR; // id nebylo deklarováno
     else
     {
-        token = get_token();
+        token = getToken();
         if(token.type != EQUAL) return SYNTAX_ERR; //Není rovná se
         else
         {
-            token = get_token();
+            token = getToken();
             if(token.type == ID) {
                     //pořesím fci
                 if(symPtr = stSearch(token.value) == NULL) return SEM_ERR; //neznámá funkce
                 if(!(symPtr.data.type.tInt && token.type == INT_LITERAL) ||
                     (symPtr.data.type.tDouble && token.type == DOUBLE_LITERAL) ||
                     (symPtr.data.type.tString && token.type == STRING_LITERAL)) return SEM_ERR; // nesedí typ operatoru a funkce
-                token = get_token();
+                token = getToken();
                 if(token.type != RIGHT_BRACKET) return SYNTAX_ERR;
                 //parametry
-                token = get_token();
+                token = getToken();
                 if(token.type != LEFT_BRACKET) return SYNTAX_ERR;
-                token = get_token();
+                token = getToken();
                 if(token.type != SEMICOLON) return SYNTAX_ERR;
                 //dostat nějak hodnotu te funkce a uložit ji
                 return fceValue();
@@ -370,11 +448,11 @@ int assignment()
 int input()
 {
     tNodePtr nodePtr;
-    token = get_token();
+    token = getToken();
     if(token.type != ID) SEM_ERR; //Neodstal jsem Input id
     char *symVarName = (char *)malloc((strlen(funcName))+strlen(token.value)+3); // *func*var\0 jméno lokální proměnné
     if(sscanf(symVarName,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
-    token = get_token();
+    token = getToken();
     if(token.type != SEMICOLON) return SYNTAX_ERR;
     if(nodePtr = stSearch(symVarName) == NULL) return SEM_ERR; //Identifikator neni deklarovany
     else{
