@@ -23,6 +23,10 @@
  int all();
  int funcDefine();
  int funcDeclare()
+ int params();
+ int nextParams();
+ int checkParams();
+ int checkNextParams();
  int endFunc();
  int assignment();
  int input();

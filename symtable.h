@@ -29,11 +29,12 @@ typedef union{
     char *st;
 } tVal;
 
-typedef struct{
-   char *name;
-   bool isFunc;
-   tType type;
-   tVal value;
+typedef struct tSymbol{
+    char *name;
+    bool isFunc;
+    tType type;
+    tVal value;
+    struct tSymbol *nextParam;
 } tSymbol, *tSymbolPtr;
 
 typedef struct tNode{
