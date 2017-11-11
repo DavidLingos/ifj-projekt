@@ -15,25 +15,26 @@
  * Definice funkci použitých při lexikální analýze
  * Scanner naimplementovaný jako konečný automat (switch/case).
  */
-/* state:
- * 0: init
- *
- */
+
+
 typedef enum{
     INIT,
     IDENTIFIER,
     COMMENT_OR_DIVIDE,
-    STRING,
+    STRING_START,
     NUMBER,
     ONE_LINE_COMMENT,
     COMPARISON_LESS,
     COMPARISON_MORE,
     MULTI_LINE_COMMENT,
-    LOAD_STRING
-};
+    LOAD_STRING,
+    DECIMAL,
+    EXPONENT,
+    DECIMAL_LOAD,
+    EXPONENT_LOAD
+}TState;
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 
 #include "str.h"
@@ -41,42 +42,41 @@ typedef enum{
 
 FILE * sourceFile;
 char c;
-void setSourceFile(FILE * f){
-    sourceFile = f;
-}
 
-
-int getToken(string * value)
+tToken getToken()
 {
     int com = 0;
-    int state = INIT;
+    token.type = NOTOKEN;
+    TState state = INIT;
+
     while (1){
         c = (char)getc(sourceFile);
         switch (state){
             case INIT:
+                //tokeny s delkou 1
                 if (c == '(')
-                    return LEFT_BRACKET;
+                    token.type = LEFT_BRACKET;
                 else if (c == ')')
-                    return RIGHT_BRACKET;
+                    token.type = RIGHT_BRACKET;
                 else if (c == ';')
-                    return SEMICOLON;
+                    token.type = SEMICOLON;
                 else if (c == EOF)
-                    return END_OF_FILE;
+                    token.type = END_OF_FILE;
                 else if (c == '+')
-                    return PLUS;
+                    token.type = PLUS;
                 else if (c == '-')
-                    return MINUS;
-                else if (c == *)
-                    return MUL;
+                    token.type = MINUS;
+                else if (c == '*')
+                    token.type = MUL;
                 else if (c == '\\')
-                    return DIV_INT;
+                    token.type = DIV_INT;
                 else if (c == '=')
-                    return EQUAL;
+                    token.type = EQUAL;
                 else if (isalpha(c) || c == '_')
                 {
                     state = IDENTIFIER;
                     c = (char)tolower(c);
-                    strAddChar(value, c);
+                    strAddChar(token.value, c);
                 }
                 else if (c == '/' )
                     state = COMMENT_OR_DIVIDE;
@@ -87,50 +87,69 @@ int getToken(string * value)
                 else if (c == '>')
                     state = COMPARISON_MORE;
                 else if (c == '!')
-                    state = STRING;
+                    state = STRING_START;
                 else if (isdigit(c)) {
                     state = NUMBER;
-                    strAddChar(value, c);
+                    strAddChar(token.value, c);
                 }
                 else if (isspace(c))
                     state = INIT;
+                else if (c == EOF)
+                    token.type = END_OF_FILE;
                 else
-                    return LEX_ERR;
+                    token.type = LEX_ERR;
+                if (token.type != NOTOKEN)
+                    return token;
                 break;
             case IDENTIFIER:
+                //povolene znaky identifikatoru
                 if (isalpha(c) || isdigit(c) || c == '_')
                 {
                     state = IDENTIFIER;
                     c = (char)tolower(c);
-                    strAddChar(value, c);
+                    strAddChar(token.value, c);
                 }
                 else
                 {
-                    fseek(sourceFile, -1, SEEK_CUR);
-                    if (strCmpConstStr(value, "as") || strCmpConstStr(value, "asc") || strCmpConstStr(value, "declare")
-                        || strCmpConstStr(value, "dim") || strCmpConstStr(value, "do") || strCmpConstStr(value, "double")
-                        || strCmpConstStr(value, "else") || strCmpConstStr(value, "end") || strCmpConstStr(value, "chr")
-                        || strCmpConstStr(value, "function") || strCmpConstStr(value, "if")
-                        || strCmpConstStr(value, "input") || strCmpConstStr(value, "integer")
-                        || strCmpConstStr(value, "length") || strCmpConstStr(value, "loop")
-                        || strCmpConstStr(value, "print") || strCmpConstStr(value, "return")
-                        || strCmpConstStr(value, "scope") || strCmpConstStr(value, "string")
-                        || strCmpConstStr(value, "substr") || strCmpConstStr(value, "then")
-                        || strCmpConstStr(value, "while"))
-                        return KEYWORD;
+                    //kontrola, jestli nacteny identifikator neni klicove slovo
+                    if (strCmpConstStr(token.value, "as") || strCmpConstStr(token.value, "asc")
+                        || strCmpConstStr(token.value, "declare")
+                        || strCmpConstStr(token.value, "dim") || strCmpConstStr(token.value, "do")
+                        || strCmpConstStr(token.value, "else") || strCmpConstStr(token.value, "end")
+                        || strCmpConstStr(token.value, "chr")
+                        || strCmpConstStr(token.value, "function") || strCmpConstStr(token.value, "if")
+                        || strCmpConstStr(token.value, "input")
+                        || strCmpConstStr(token.value, "length") || strCmpConstStr(token.value, "loop")
+                        || strCmpConstStr(token.value, "print") || strCmpConstStr(token.value, "return")
+                        || strCmpConstStr(token.value, "scope")
+                        || strCmpConstStr(token.value, "substr") || strCmpConstStr(token.value, "then")
+                        || strCmpConstStr(token.value, "while"))
+                        token.type = KEYWORD;
+                    else if (strCmpConstStr(token.value, "integer"))
+                        token.type = INTEGER;
+                    else if (strCmpConstStr(token.value, "double"))
+                        token.type = DOUBLE;
+                    else if (strCmpConstStr(token.value, "string"))
+                        token.type = STRING;
                     else
-                        return ID;
+                        token.type = ID;
                 }
+                if (token.type != NOTOKEN)
+                    return token;
                 break;
             case COMMENT_OR_DIVIDE:
+                //byl nacten znak '/', muze byt deleni nebo zacatek komentare
                 if (c == '\'')
                     state = MULTI_LINE_COMMENT;
                 else{
                     fseek(sourceFile, -1, SEEK_CUR);
-                    return DIV;
+                    token.type = DIV;
+                    return token;
                 }
                 break;
             case MULTI_LINE_COMMENT:
+                //Text v komentari - nacitame, dokud nejsou symboly pro konec komentare nebo EOF
+                //TODO EOF
                 if (c == '\'') {
                     com = 1;
                     state = MULTI_LINE_COMMENT;
@@ -145,49 +164,128 @@ int getToken(string * value)
                 }
                 break;
             case ONE_LINE_COMMENT:
+                //jednoradkovy komentar, znaky ignorujeme, dokud neni znak konec radku nebo EOF
+                //TODO: EOF
                 if (c == '\n')
                     state = INIT;
                 else
                     state = ONE_LINE_COMMENT;
                 break;
             case COMPARISON_LESS:
+                //nacten znak '<', na zaklade dalsiho znaku jednoznacne urcime token
                 if (c == '=')
-                    return LESS_OR_EQ;
+                    token.type = LESS_OR_EQ;
                 else if (c == '>')
-                    return NOT_EQUAL;
+                    token.type = NOT_EQUAL;
                 else{
                     fseek(sourceFile, -1, SEEK_CUR);
-                    return LESS;
+                    token.type = LESS;
                 }
+                return token;
+
             case COMPARISON_MORE:
+                //nacten znak '>', na zaklade dalsiho znaku jednoznacne urcime token
                 if (c == '=')
-                    return MORE_OR_EQ;
+                    token.type = MORE_OR_EQ;
                 else {
                     fseek(sourceFile, -1, SEEK_CUR);
-                    return MORE;
+                    token.type = MORE;
                 }
-            case STRING:
+                return token;
+
+            case STRING_START:
+                //nacten '!', kontrola jestli je dalsi znak '"', pote zacina retezcovy literal
                 if (c != '\"')
-                    return LEX_ERR;
+                    token.type = LEX_ERR;
                 else
                     state = LOAD_STRING;
+                if (token.type != NOTOKEN)
+                    return token;
                 break;
             case LOAD_STRING:
-                if (c == '\"')
-                    return STRING_LITERAL;
+                //scanner prochazi znaky retzcoveho literalu, uklada je do token.value
+                //TODO: escape sequences, eof
+                if (c == '\"') {
+                    token.type = STRING_LITERAL;
+                    return token;
+                }
                 else{
-                    strAddChar(value, c);
+                    strAddChar(token.value, c);
                     state = LOAD_STRING;
                 }
                 break;
             case NUMBER:
-                if (isdigit(c))
-
-
-
-
-
-
+                if (isdigit(c)) {
+                    strAddChar(token.value, c);
+                    state = NUMBER;
+                }
+                else if(c == '.') {
+                    strAddChar(token.value, c);
+                    state = DECIMAL;
+                }
+                else if (c == 'e' || c == 'E') {
+                    strAddChar(token.value, c);
+                    state = EXPONENT;
+                }
+                else {
+                    fseek(sourceFile, -1, SEEK_CUR);
+                    token.type = INT_LITERAL;
+                    return token;
+                }
+                break;
+            case DECIMAL:
+                //Po desetine tecce musi nasledovat alespon jedna cislice
+                if (isdigit(c)){
+                    strAddChar(token.value, c);
+                    state = DECIMAL_LOAD;
+                }
+                else{
+                    token.type = LEX_ERR;
+                    return token;
+                }
+                break;
+            case DECIMAL_LOAD:
+                //Uz byla nactena cislice po tecce, muze tedy byt navracen token typu DOUBLE_LITERAL
+                if (isdigit(c)){
+                    strAddChar (token.value, c);
+                    state = DECIMAL_LOAD;
+                }
+                else if (c == 'e' || c == 'E'){
+                    strAddChar(token.value, c);
+                    state = EXPONENT;
+                }
+                else {
+                    fseek(sourceFile, -1, SEEK_CUR);
+                    token.type = DOUBLE_LITERAL;
+                    return token;
+                }
+                break;
+            case EXPONENT:
+                //Po e/E musi nasledovat alespon jedna cislice nebo +/- a pak cislice
+                if (isdigit(c)){
+                    strAddChar (token.value, c);
+                    state = EXPONENT_LOAD;
+                }
+                else if (c == '+' || c == '-'){
+                    strAddChar(token.value, c);
+                    state = EXPONENT;
+                }
+                else{
+                    token.type = LEX_ERR;
+                    return token;
+                }
+                break;
+            case EXPONENT_LOAD:
+                //Uz byla nactena cislice po e/E, muze tedy byt navracen token typu DOUBLE_LITERAL
+                if (isdigit(c)){
+                    strAddChar (token.value, c);
+                    state = EXPONENT_LOAD;
+                }
+                else {
+                    fseek(sourceFile, -1, SEEK_CUR);
+                    token.type = DOUBLE_LITERAL;
+                    return token;
+                }
 
         }
 

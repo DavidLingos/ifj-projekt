@@ -20,9 +20,14 @@
 #include "str.h"
 
 //identifikatory
-#define ID 0
+#define NOTOKEN 0
+#define ID 1
 //klicova slova - ulozene ve value
 #define KEYWORD 5
+//klicova slova datovych typu
+#define INTEGER 6
+#define DOUBLE 7
+#define STRING 8
 //literaly
 #define INT_LITERAL 23
 #define DOUBLE_LITERAL 24
@@ -61,6 +66,6 @@ extern tToken token;
 //deklarace funkci
 
 //funkce vraci ciselny kod tokenu a do value ulozi hodnotu literalu (nebo null pokud token neni literal)
-int getToken(string *value); //TODO knihovnu pro praci s retezci
+tToken getToken(); //TODO knihovnu pro praci s retezci
 
 
