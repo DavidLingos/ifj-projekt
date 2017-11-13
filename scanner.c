@@ -112,24 +112,24 @@ tToken getToken()
                 else
                 {
                     //kontrola, jestli nacteny identifikator neni klicove slovo
-                    if (strCmpConstStr(token.value, "as") || strCmpConstStr(token.value, "asc")
-                        || strCmpConstStr(token.value, "declare")
-                        || strCmpConstStr(token.value, "dim") || strCmpConstStr(token.value, "do")
-                        || strCmpConstStr(token.value, "else") || strCmpConstStr(token.value, "end")
-                        || strCmpConstStr(token.value, "chr")
-                        || strCmpConstStr(token.value, "function") || strCmpConstStr(token.value, "if")
-                        || strCmpConstStr(token.value, "input")
-                        || strCmpConstStr(token.value, "length") || strCmpConstStr(token.value, "loop")
-                        || strCmpConstStr(token.value, "print") || strCmpConstStr(token.value, "return")
-                        || strCmpConstStr(token.value, "scope")
-                        || strCmpConstStr(token.value, "substr") || strCmpConstStr(token.value, "then")
-                        || strCmpConstStr(token.value, "while"))
+                    if (!strCmpConstStr(token.value, "as") || !strCmpConstStr(token.value, "asc")
+                        || !strCmpConstStr(token.value, "declare")
+                        || !strCmpConstStr(token.value, "dim") || !strCmpConstStr(token.value, "do")
+                        || !strCmpConstStr(token.value, "else") || !strCmpConstStr(token.value, "end")
+                        || !strCmpConstStr(token.value, "chr")
+                        || !strCmpConstStr(token.value, "function") || !strCmpConstStr(token.value, "if")
+                        || !strCmpConstStr(token.value, "input")
+                        || !strCmpConstStr(token.value, "length") || !strCmpConstStr(token.value, "loop")
+                        || !strCmpConstStr(token.value, "print") || !strCmpConstStr(token.value, "return")
+                        || !strCmpConstStr(token.value, "scope")
+                        || !strCmpConstStr(token.value, "substr") || !strCmpConstStr(token.value, "then")
+                        || !strCmpConstStr(token.value, "while"))
                         token.type = KEYWORD;
-                    else if (strCmpConstStr(token.value, "integer"))
+                    else if (!strCmpConstStr(token.value, "integer"))
                         token.type = INTEGER;
-                    else if (strCmpConstStr(token.value, "double"))
+                    else if (!strCmpConstStr(token.value, "double"))
                         token.type = DOUBLE;
-                    else if (strCmpConstStr(token.value, "string"))
+                    else if (!strCmpConstStr(token.value, "string"))
                         token.type = STRING;
                     else
                         token.type = ID;
