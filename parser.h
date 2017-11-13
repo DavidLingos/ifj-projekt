@@ -17,6 +17,7 @@
 
  #include "errorCodes.h"
  #include "symtable.h"
+ #include "tags.h"
 
  int parser();
  int scope();

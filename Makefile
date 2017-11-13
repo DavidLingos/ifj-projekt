@@ -1,13 +1,13 @@
 CFLAGS=-std=c99 -Wall -pedantic -g
 
-ALL: scanner.o symtable.o interpret.o parser.o main.o
-	gcc $(CFLAGS) -o  scanner.o symtable.o interpret.o parser.o main.o
+compiler: scanner.o symtable.o interpret.o parser.o main.o
+	gcc $(CFLAGS) scanner.o symtable.o interpret.o parser.o main.o -lm -o compiler
 
 scanner.o: scanner.c
 	gcc $(CFLAGS) -c scanner.c
 
 symtable.o: symtable.c
-	gcc $(CFLAGS) -c sýmtable.c
+	gcc $(CFLAGS) -c symtable.c
 
 parser.o: parser.c
 	gcc $(CFLAGS) -c parser.c

@@ -1,0 +1,56 @@
+Deklarace funkce
+    funkce: FuncDeclare(), params();
+    tvar: Declare Function ID (params) As TYPE;
+    logika: Pokud je syntaxe správná a ID ještě neexistuje vložím do tabulky symbolů,
+            klíč = název funkce;
+
+
+Definice funkce
+    funkce: funcDefine(), checkParams(), body();
+    tvar: Function ID(checkParams) As TYPE EOL
+          body()
+          End Function;
+    logika: zkontroluji, jestli existuje ID, zkontroluji jestli existuje ID,
+            zkontroluji, jestli sedí parametry (checkParams)
+            jdu do body(), pokud body je ok, zkontroluji "End Function" a čus;
+
+
+Vytvoření prvního parametru
+    funkce:params(), nextParams();
+    tvar: ID as TYPE
+    logika: zkontroluji syntaxi prvního parametru, vložím do tabulky symbolu
+            tvar: *funcName*ID\0
+            jdu do checkParams();
+
+Vytvoření dalších parametru
+    funkce: nextParams();
+    tvar: ,ID as TYPE
+    logika: stejná jako u params, ale kontroluji i čárku a to, jestli už tento parametru
+            nebyl vytvořen.
+
+Zkontrolování prvního parametru
+    funkce: checkParams(), checkNextParams();
+    logika: vezmu první parametr podle funcName a zkontroluji, jestli sedí syntaxe
+            a TYPE parametru, přepíšu id, pokud je třeba (ID se může v deklaraci a definici lišit)
+
+Zkontrolování dalších parametru
+    funkce: checkNextParams();
+    logika: stejná jako u checkParams, ale kontroluji další parametry a čárku
+
+Definice proměnných
+    funkce: varDeclare();
+    tvar: Dim ID as TYPE;
+    logika: zkontroluji, jestli id už v dané funḱci neexistuje a vložím do tabulky symbolů
+            tvar: *funcName*ID\0
+            v případě hlavního těla programu je jméno funkce scope;
+
+Přiřazení do proměnné
+    funkce: assignment();
+    tvar: ID = <expr>
+    logika: Zkontroluji, jestli existuje ID, pokud mám i "=", jdu do zpracování výrazů (žakyn)
+
+Input:
+    funkce: Input()
+    tvar Input id;
+    logika: zkontroluji
+

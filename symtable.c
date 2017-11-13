@@ -17,14 +17,12 @@
  */
 
 #include <stdio.h>
-#include "errorCodes.h"
 #include "symtable.h"
 #include <string.h>
 
 void stInit()
 {
     st = NULL;
-    return;
 }
 
 void symbolInit(tSymbolPtr symbol)
@@ -89,14 +87,13 @@ void btDispose(tNodePtr root)
 
 tNodePtr btSearch(tNodePtr root, char *key)
 {
-    while(root != NULL)
+    if(root != NULL)
     {
-        if(strcmp(root->key,key) == 0) return root;
+        if(!strcmp(root->key,key)) return root;
         else if(strcmp(root->key,key) > 0) return btSearch(root->lPtr, key);
         else return btSearch(root->rPtr, key);
     }
-
-    return NULL;
+    else return NULL;
 }
 
 

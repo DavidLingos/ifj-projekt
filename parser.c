@@ -12,7 +12,6 @@
  #include <stdio.h>
  #include <stdlib.h>
  #include "parser.h"
- #include "errorcodes.h"
 
 
  /* ---------- TODO------------*/
@@ -110,7 +109,7 @@ int funcDeclare()
 
 
     error = params(); // Pořeším parametry funkce
-    if(error §= NO_ERR) return error;
+    if(error != NO_ERR) return error;
 
     token = getToken();
 

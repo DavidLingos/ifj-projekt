@@ -16,6 +16,8 @@
  * Deklarace datové struktury binární vyhledávací strom a základních funkcí nad ní,
  */
 
+#include "errorcodes.h"
+
 typedef enum{
    tNil,
    tInt,
