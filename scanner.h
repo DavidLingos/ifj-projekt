@@ -50,7 +50,8 @@
 #define LEFT_BRACKET 40     // '('
 #define RIGHT_BRACKET 41    // ')'
 #define SEMICOLON 42        // ';'
-#define END_OF_FILE 43      // 'EOF'
+#define COMMA 43
+#define END_OF_FILE 44      // 'EOF'
 #define LEX_ERR 100         // pri chybe
 
 //Klicova slova - rozsireni

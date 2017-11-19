@@ -15,15 +15,18 @@
  * Deklarace funkci použitých při syntaktické analýze.
  */
 
- #include "errorCodes.h"
+ #pragma once
+
+ #include "errorcodes.h"
  #include "symtable.h"
  #include "tags.h"
+ #include "scanner.h"
 
  int parser();
  int scope();
  int all();
  int funcDefine();
- int funcDeclare()
+ int funcDeclare();
  int params();
  int nextParams();
  int checkParams();
@@ -31,4 +34,7 @@
  int endFunc();
  int assignment();
  int input();
+ int whileCycle();
+ int ifStatement();
+ int freturn();
  int body(bool isFunc);

@@ -16,10 +16,13 @@
  * Deklarace datové struktury binární vyhledávací strom a základních funkcí nad ní,
  */
 
+#pragma once
+
+#include <stdbool.h>
 #include "errorcodes.h"
 
 typedef enum{
-   tNil,
+   tNil =0,
    tInt,
    tDouble,
    tString
@@ -53,9 +56,10 @@ extern tNodePtr st;
 void stInit();
 void symbolInit(tSymbolPtr symbol);
 void stInsert(char *key, tSymbol data);
-void btInsert(tNodePtr root, char *key, tSymbol data);
+void btInsert(tNodePtr *root, char *key, tSymbol data);
+void btInit(tNodePtr *root);
 void stDispose();
-void btDispose(tNodePtr root);
+void btDispose(tNodePtr *root);
 tNodePtr stSearch(char *key);
 tNodePtr btSearch(tNodePtr root, char *key);
 

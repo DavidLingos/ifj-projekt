@@ -20,9 +20,16 @@
 #include "symtable.h"
 #include <string.h>
 
+tNodePtr st;
+
 void stInit()
 {
-    st = NULL;
+    btInit(&st);
+}
+
+void btInit(tNodePtr *root)
+{
+    *root = NULL;
 }
 
 void symbolInit(tSymbolPtr symbol)
@@ -30,43 +37,58 @@ void symbolInit(tSymbolPtr symbol)
     if(symbol != NULL)
     {
         symbol->name = NULL;
-        symbol->type = NULL;
+        symbol->type = tNil;
     }
 }
 
 void stInsert(char *key,tSymbol data)
 {
-    btInsert(st,key,data);
+    btInsert(&st,key,data);
 }
 
-void btInsert(tNodePtr root, char *key, tSymbol data)
+void btInsert(tNodePtr *root, char *key, tSymbol data)
 {
-    if(root==NULL)
+    if(*root==NULL)
     {
-        root = malloc(struct tNode);
+        *root = malloc(sizeof(struct tNode));
         if(root == NULL)
         {
-            err = INTERN_ERR;
+            error = INTERN_ERR;
             return;
         }
 
-        root->key = key;
-        root->data = data;
-        root->lPtr = root->rPtr = NULL;
+        (*root)->key = key;
+        (*root)->data = data;
+        (*root)->lPtr = (*root)->rPtr = NULL;
     }
     else
     {
-        int i = strcmp(root->key, key);
+        int i = strcmp((*root)->key, key);
 
-        if(i<0) return stInsert(root->rPtr, key, data);
-        else if(i > 0) stInsert(root->lPtr, key, data);
-        else root->data = data;
+        if(i<0) return btInsert(&((*root)->rPtr), key, data);
+        else if(i > 0) btInsert(&((*root)->lPtr), key, data);
+        else (*root)->data = data;
     }
+}
+
+void printSt(tNodePtr root)
+{
+    if(root != NULL)
+    {
+        printNode(root);
+        printSt(root->lPtr);
+        printSt(root->rPtr);
+    }
+}
+
+void printNode(tNodePtr node)
+{
+    printf("%s\n",node->key);
 }
 
 void stDispose()
 {
-    btDispose(st);
+    btDispose(&st);
 }
 
 tNodePtr stSearch(char *key)
@@ -74,12 +96,12 @@ tNodePtr stSearch(char *key)
     return btSearch(st, key);
 }
 
-void btDispose(tNodePtr root)
+void btDispose(tNodePtr *root)
 {
     if(root != NULL)
     {
-        btDispose(root->lPtr);
-        btDispose(root->rPtr);
+        btDispose(&((*root)->lPtr));
+        btDispose(&((*root)->rPtr));
 
         free(root);
     }

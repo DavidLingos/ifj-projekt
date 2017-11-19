@@ -9,7 +9,10 @@
  *           Michal Beranek  <xberan38@stud.fit.vutbr.cz>
  */
 
+
 #include "tags.h"
+
+opItem *opTable;
 
 void opInit(opItem **opTable)
 {
@@ -17,11 +20,11 @@ void opInit(opItem **opTable)
     lastOp = 0;
 }
 
-void opInsert(opItem **opTable, size_t operation, tNodePtr op1. tNodePtr op2, tNodePtr result)
+void opInsert(opItem **opTable, size_t operation, char* op1, char* op2, char* result)
 {
     if(lastOp % MOREOPS == 0)
     {
-        *opTable = (opItem *)realloc((*opTable,lastOp+MOREOPS)*sizeof(opItem));
+        *opTable = (opItem *)realloc(*opTable,(+lastOp+MOREOPS)*sizeof(opItem));
         if(opTable == NULL)
         {
             error = INTERN_ERR;

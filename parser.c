@@ -9,27 +9,29 @@
  *           Michal Beranek  <xberan38@stud.fit.vutbr.cz>
  */
 
- #include <stdio.h>
- #include <stdlib.h>
- #include "parser.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "parser.h"
+#include "tags.h"
 
+/* ---------- TODO------------*/
+/**
+* Definice funkci použitých při syntaktické analýze.
+* Načítání tokenů a kontrola správných sémantických pravidel.
+* int parser(); vrací 0, pokud ok jinak číslo chyby z errorCodes.h
+*/
 
- /* ---------- TODO------------*/
- /**
- * Definice funkci použitých při syntaktické analýze.
- * Načítání tokenů a kontrola správných sémantických pravidel.
- * int parser(); vrací 0, pokud ok jinak číslo chyby z errorCodes.h
- */
-
- char *funcName;
- tSymbol *actParam;
-
+char *funcName;
+tSymbol *actParam;
+char *varName;
 
 int parser()
 {
 
     int error;
 
+    opInit(&opTable);
 
     token = getToken();
 
@@ -68,13 +70,13 @@ int handleFunc()
     if(!strcmp(token.value,"Declare"))
     {
         error = funcDeclare(); // Deklarace funkce
-        if(error == ERR_OḰ) return handleFunc();
+        if(error == NO_ERR) return handleFunc();
         else return error;
     }
     else if(!strcmp(token.value,"Function"))
     {
         error = funcDefine(); //definice funkce
-        if(error == ERR_OḰ) return handleFunc();
+        if(error == NO_ERR) return handleFunc();
         else return error;
     }
     else if(!strcmp(token.value,"Scope"))
@@ -137,7 +139,7 @@ int funcDeclare()
 int checkParams()
 {
     tNodePtr fce = stSearch(funcName);
-    actParam = fce.data.nextArg;
+    actParam = fce->data.nextParam;
 
     token = getToken();
     if(token.type == RIGHT_BRACKET) {
@@ -148,7 +150,7 @@ int checkParams()
 
     tSymbol newSymbol;
     symbolInit(&newSymbol);
-    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    newSymbol.name = (char *)malloc((strlen(token.value)+strlen(funcName)+3));
     if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
     newSymbol.isFunc = false;
     token = getToken();
@@ -171,27 +173,27 @@ int checkParams()
         return SYNTAX_ERR; //Nedostal jsem podporovaný typ
     }
 
-    if(strcmp(newSymbol.name,actParam.name) || newSymbol.type != actParam.type) return SEM_ERR; //Neshoduje se parametr v definici a deklaraci
+    if(strcmp(newSymbol.name,actParam->name) || newSymbol.type != actParam->type) return SEM_ERR; //Neshoduje se parametr v definici a deklaraci
 
     return checkNextParams();
 }
 
 int checkNextParams()
 {
-    actParam = actParam.nextParam;
+    actParam = actParam->nextParam;
     token = getToken();
     if(token.type == RIGHT_BRACKET)
     {
         if(actParam == NULL) return NO_ERR;//žádné další parametry
         else return SEM_ERR; // nemám už další parametry v deklaraci, ale v definici ano
     }
-    if(token.type != CARKA) return SYNTAX_ERR; //Nenasleduje čárka za parametrem
+    if(token.type != COMMA) return SYNTAX_ERR; //Nenasleduje čárka za parametrem
     token = getToken();
     if(token.type != ID) return SYNTAX_ERR; //Nemám id, chyba
 
     tSymbol newSymbol;
     symbolInit(&newSymbol);
-    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    newSymbol.name = (char *)malloc((strlen(token.value)+strlen(funcName)+3));
     if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
     newSymbol.isFunc = false;
     token = getToken();
@@ -214,7 +216,7 @@ int checkNextParams()
         return SYNTAX_ERR; //Nedostal jsem podporovaný typ
     }
 
-    if(strcmp(newSymbol.name,actParam.name) || newSymbol.type != actParam.type) return SEM_ERR; //Neshoduje se parametr v definici a deklaraci
+    if(strcmp(newSymbol.name,actParam->name) || newSymbol.type != actParam->type) return SEM_ERR; //Neshoduje se parametr v definici a deklaraci
 
     return checkNextParams();
 }
@@ -228,6 +230,7 @@ int endFunc()
     }
     token = getToken();
     if(token.type != SEMICOLON) return SYNTAX_ERR;
+    opInsert(&opTable,oReturn,NULL,NULL,NULL);
     return NO_ERR;
 }
 
@@ -256,21 +259,21 @@ int funcDefine()
     {
         if(!strcmp(token.value,"Integer"))
         {
-            if(fcDec.data.type != tInt) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
+            if(fcDec->data.type != tInt) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
         }
         else if(!strcmp(token.value,"Double"))
         {
-            if(fcDec.data.type != tDouble) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
+            if(fcDec->data.type != tDouble) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
         }
         else if(!strcmp(token.value,"String"))
         {
-            if(fcDec.data.type != tString) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
+            if(fcDec->data.type != tString) return SEM_ERR; //Neni stejny navraatový typ jako při deklaraci
         }
         else return SYNTAX_ERR;
     }
 
     token = getToken();
-
+    opInsert(&opTable,oLabel,fcDec,NULL,NULL);
     if(strcmp(token.value,"End")) //Tělo není prázdné
     {
         error = varDeclare(); //Podívám se, jestli mám nějaké proměnné na deklarování
@@ -278,7 +281,12 @@ int funcDefine()
         {
             return endFunc(); // Musí být End Function;
         }
-        if(error = NO_ERR) return body(1); //Zkontroluji tělo funkce
+        if(error = NO_ERR)
+        {
+            error = body(); //Zkontroluji tělo funkce
+            if(error == NO_ERR) return endFunc();
+            else return error;
+        }
         else return error;
     }
     else //Prázdné tělo funkce
@@ -297,7 +305,7 @@ int params()
 
     tSymbol newSymbol;
     symbolInit(&newSymbol);
-    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    newSymbol.name = (char *)malloc((strlen(token.value)+strlen(funcName)+3));
     if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
     newSymbol.isFunc = false;
     token = getToken();
@@ -327,7 +335,7 @@ int params()
     //parametry funkce nextParam
     tNodePtr fce = stSearch(funcName);
     if(fce == NULL) return INTERN_ERR;
-    fce.data.nextParam = &newSymbol;
+    fce->data.nextParam = &newSymbol;
 
     return nextParams();
 }
@@ -336,13 +344,13 @@ int nextParams()
 {
     token = getToken();
     if(token.type == RIGHT_BRACKET) return NO_ERR;//žádné další parametry
-    if(token.type != CARKA) return SYNTAX_ERR; //Nenasleduje čárka za parametrem
+    if(token.type != COMMA) return SYNTAX_ERR; //Nenasleduje čárka za parametrem
     token = getToken();
     if(token.type != ID) return SYNTAX_ERR; //Nemám id, chyba
 
     tSymbol newSymbol;
     symbolInit(&newSymbol);
-    newSymbol.name = (char *)malloc((strlen(nazev)+strlen(funcName)+3));
+    newSymbol.name = (char *)malloc((strlen(token.value)+strlen(funcName)+3));
     if(sscanf(newSymbol.name,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
     newSymbol.isFunc = false;
     token = getToken();
@@ -368,12 +376,12 @@ int nextParams()
     //Pořeším parametry
     tNodePtr fce = stSearch(funcName);
     if(fce == NULL) return INTERN_ERR;
-    tSymbolPtr pomPtr = fce.data.nextParam;
-    while(pomPtr.nextParam != NULL)
+    tSymbolPtr pomPtr = fce->data.nextParam;
+    while(pomPtr->nextParam != NULL)
     {
-            pomPtr = pomPtr.nextParam;
+            pomPtr = pomPtr->nextParam;
     }
-    pomPtr.nextParam = &newSymbol;
+    pomPtr->nextParam = &newSymbol;
 
     stInsert(newSymbol.name,newSymbol);
 
@@ -430,6 +438,7 @@ int varDeclare()
         if(token.type == SEMICOLON)
         {
             stInsert(symVarName,newSymbol);
+            opInsert(&opTable,oDefVar,stSearch(newSymbol.name),NULL,NULL);
             token = getToken(); //Další token pro varDeclare
             return varDeclare();
         }
@@ -443,18 +452,24 @@ int varDeclare()
                     else
                     {
                         newSymbol.value.in = atoi(token.value);
+                        opInsert(&opTable,oDefVar,newSymbol.name,NULL,NULL);
+                        opInsert(&opTable,oMove,newSymbol.name,""+newSymbol.value.in+"",NULL);
                     }
                 case tDouble:
                     if(token.type == STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
                     else
                     {
                         newSymbol.value.db = atof(token.value);
+                        opInsert(&opTable,oDefVar,newSymbol.name,NULL,NULL);
+                        opInsert(&opTable,oMove,newSymbol.name,""+newSymbol.value.db+"",NULL);
                     }
                 case tString:
                     if(token.type != STRING_LITERAL) return SYNTAX_ERR; // Chci string, ale nedostal jsem ho
                     else
                     {
                         newSymbol.value.st = token.value;
+                        opInsert(&opTable,oDefVar,newSymbol.name,NULL,NULL);
+                        opInsert(&opTable,oMove,newSymbol.name,newSymbol.value.st,NULL);
                     }
             }
             stInsert(symVarName,newSymbol); //Vložím do tabulky symbolů
@@ -479,57 +494,107 @@ int body(bool isFunc)
         if(!strcmp(token.value,"End"))
         {
             token = getToken();
-            if(isFunc && strcmp(token.vaue, "Function")) return SYNTAX_ERR; //Je to funkce, takže to muí být End Function;
-            if(!isFunc && strcmp(token.vaue, "Scope")) return SYNTAX_ERR; //Je to Scope, takže musí být End Function
+            if(isFunc && strcmp(token.value, "Function")) return SYNTAX_ERR; //Je to funkce, takže to muí být End Function;
+            if(!isFunc && strcmp(token.value, "Scope")) return SYNTAX_ERR; //Je to Scope, takže musí být End Function
             token = getToken();
             if(token.type != SEMICOLON) return SYNTAX_ERR;
             return NO_ERR;
         }
-        if(!strcmp(token.value,"Input"))
+        else if(!strcmp(token.value,"Input"))
         {
             error = input();
             if(error != NO_ERR) return error;
             break;
         }
-        if(!strcmp(token.value,"Print"))
+        else if(!strcmp(token.value,"Print"))
         {
 
         }
-        if(!strcmp(token.value,"Do"))
+        else if(!strcmp(token.value,"Do"))
+        {
+            error = whileCycle();
+            if(error != NO_ERR) return error;
+            break;
+        }
+        else if(!strcmp(token.value,"Loop"))
+        {
+            opInsert(&opTable,oJump,"while",NULL,NULL);
+            opInsert(&opTable,oLabel,"endWhile",NULL,NULL);
+            break;
+        }
+        else if(!strcmp(token.value,"If"))
         {
 
         }
-        if(!strcmp(token.value,"If"))
+        else if(!strcmp(token.value,"Else"))
         {
 
         }
-        if(!strcmp(token.value,"Return"))
+        else if(!strcmp(token.value,"Return"))
         {
-            //if(isFunc) Pořeš vrácení z funkce
-            //else // jsem ve Scope a nesmí tam být return
+            error = freturn();
+            if(error != NO_ERR) return error;
+            break;
+        }
+        else if(!strcmp(token.value,"Dim"))
+        {
+            error = varDeclare();
+            if(error != NO_ERR) return error;
+            break;
         }
         else // Klíčová slova, která nemají být ve scope, jako např Declare
         {
             return SEM_ERR;
         }
         break;
-    case default:
+    default:
         return SEM_ERR;//Slova, co tam nemají být.
         break;
     }
-    return body();
+    return body(isFunc);
 }
 
-int return()
+int whileCycle()
 {
+    token = getToken();
+    if(strcmp(token.value,"While")) return SYNTAX_ERR;
+    opInsert(&opTable,oLabel,"while",NULL,NULL);
+    //vyhodnot a azpiš vyraz
+    body();
+}
 
+int ifStatement()
+{
+    if(!strcmp(token.value,"If"))
+    {
+        //vyhodnot vyraaz a zapiš ho
+        token = getToken();
+        if(strcmp(token.value,"Then")) return SYNTAX_ERR;
+        opInsert(&opTable,oLabel,"startif",NULL,NULL);
+        body();
+    }
+    else{
+        //opInsert()
+    }
+
+}
+
+int freturn()
+{
+    //Vyhodnoť výraz a pushni ho na stack
+    token = getToken();
+    if(token.type != SEMICOLON) return SYNTAX_ERR;
+    opInsert(&opTable,oReturn,NULL,NULL,NULL);
+    return NO_ERR;
 }
 
 int assignment()
 {
     tNodePtr symPtr;
+    varName = token.value;
     if(symPtr = stSearch(token.value) != NULL)
     {
+        //ID je jméno funkce
         return SEM_ERR;
     }
     char *symVarName = (char *)malloc((strlen(funcName))+strlen(token.value)+3); // *func*var\0 jméno lokální proměnné
@@ -547,35 +612,35 @@ int assignment()
                     //TODO pořesím fci
 
                 if(symPtr = stSearch(token.value) == NULL) return SEM_ERR; //neznámá funkce
-                if(!(symPtr.data.type.tInt && token.type == INT_LITERAL) ||
-                    (symPtr.data.type.tDouble && token.type == DOUBLE_LITERAL) ||
-                    (symPtr.data.type.tString && token.type == STRING_LITERAL)) return SEM_ERR; // nesedí typ operatoru a funkce
-                token = getToken();
-                if(token.type != LEFT_BRACKET) return SYNTAX_ERR;
-                //parametry
-                token = getToken();
-                if(token.type != RIGHT_BRACKET) return SYNTAX_ERR;
-                token = getToken();
-                if(token.type != SEMICOLON) return SYNTAX_ERR;
-                //dostat nějak hodnotu te funkce a uložit ji
-                return fceValue();
+                opInsert(&opTable,oCall,token.value,NULL,NULL);
+                opInsert(&opTable,oPopFrame,NULL,NULL,NULL);
+                opInsert(&opTable,oPops,varName,NULL,NULL);
+//                if(!(symPtr->data.type == tInt && token.type == INT_LITERAL) ||
+//                    (symPtr->data.type == tDouble && token.type == DOUBLE_LITERAL) ||
+//                    (symPtr->data.type == tString && token.type == STRING_LITERAL)) return SEM_ERR; // nesedí typ operatoru a funkce
+//                token = getToken();
+//                if(token.type != LEFT_BRACKET) return SYNTAX_ERR;
+//                //parametry
+//                token = getToken();
+//                if(token.type != RIGHT_BRACKET) return SYNTAX_ERR;
+//                token = getToken();
+//                if(token.type != SEMICOLON) return SYNTAX_ERR;
+//                //dostat nějak hodnotu te funkce a uložit ji
+//                return fceValue();
             }
-            else if(symPtr.data.type == tInt){
+            else if(symPtr->data.type == tInt){
                 if(token.type == STRING_LITERAL) return SYNTAX_ERR; //Chci int nebo double ale nedostal jsem ho
-                symPtr.data.value.in = atoi(token.value);
-                token = getToken();
+                opInsert(&opTable,oMove,varName,token.value,NULL);
                 if(token.type != SEMICOLON) return SYNTAX_ERR;
             }
-            else if(symPtr.data.type == tDouble){
+            else if(symPtr->data.type == tDouble){
                 if(token.type == STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
-                symPtr.data.value.db = atof(token.value);
-                token = getToken();
+                opInsert(&opTable,oMove,varName,token.value,NULL);
                 if(token.type != SEMICOLON) return SYNTAX_ERR;
             }
-            else if(symPtr.data.type == tString){
+            else if(symPtr->data.type == tString){
                 if(token.type != STRING_LITERAL) return SYNTAX_ERR; // Chci double nebo int ale nedostal jsem ho
-                symPtr.data.value.st = atof(token.value);
-                token = getToken();
+                opInsert(&opTable,oMove,varName,token.value,NULL);
                 if(token.type != SEMICOLON) return SYNTAX_ERR;
             }
             else{
@@ -590,6 +655,7 @@ int input()
 {
     tNodePtr nodePtr;
     token = getToken();
+    varName = token.value;
     if(token.type != ID) SEM_ERR; //Neodstal jsem Input id
     char *symVarName = (char *)malloc((strlen(funcName))+strlen(token.value)+3); // *func*var\0 jméno lokální proměnné
     if(sscanf(symVarName,"*%s*%s",funcName,token.value) != 2) return INTERN_ERR;
@@ -597,24 +663,14 @@ int input()
     if(token.type != SEMICOLON) return SYNTAX_ERR;
     if(nodePtr = stSearch(symVarName) == NULL) return SEM_ERR; //Identifikator neni deklarovany
     else{
-        printf("? ");
-        if(nodePtr.data.type == tInt)
-        {
-            if(!scanf("%d",&(nodePtr.data.value.in)) return TYPE_ERR; //Nepodařilo se načíst int
-        }
-        if(nodePtr.data.type == tDouble)
-        {
-            if(!scanf("%g",&(nodePtr.data.value.db)) return TYPE_ERR; //Nepodařilo se načíst double
-        }
-        if(nodePtr.data.type == tString)
-        {
-            if(!scanf("%s",nodePtr.data.value.st)) return TYPE_ERR; //Nepodařilo se načíst double
-        }
+        opInsert(&opTable,oRead,token.value,
+                 nodePtr.data.type == tInt ? "int" : nodePtr.data.type == tDouble ? "float" : "string",NULL);
     }
 }
 
 int scope()
 {
+    funcName = "Scope";
     body(0);
 }
 

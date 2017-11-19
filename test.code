@@ -1,0 +1,14 @@
+.IFJcode17
+DEFVAR GF@x
+DEFVAR GF@if
+READ GF@x int
+GT GF@if GF@x int@5
+JUMPIFEQ tru GF@if bool@true
+JUMPIFEQ false GF@if bool@false
+LABEL tru
+WRITE string@vetsi
+JUMP endif
+LABEL false
+WRITE string@mensi
+JUMP endif
+LABEL endif

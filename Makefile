@@ -15,6 +15,9 @@ parser.o: parser.c
 interpret.o: interpret.c
 	gcc $(CFLAGS) -c interpret.c
 
+tags.o: tags.c
+	gcc $(CFLAGS) -c tags.c
+
 main.o: main.c
 	gcc $(CFLAGS) -c main.c
 

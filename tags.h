@@ -9,19 +9,15 @@
  *           Michal Beranek  <xberan38@stud.fit.vutbr.cz>
  */
 
+#pragma once
+
+#include <stdlib.h>
 #include "symtable.h"
 
 
 extern int lastOp;
 
 #define MOREOPS 10
-
-typedef struct{
-    tOp operation;
-    void *op1;
-    void *op2;
-    void *result;
-} opItem;
 
 typedef enum
 {
@@ -49,7 +45,8 @@ typedef enum
     oEqual,
     oELess,
     oEMore,
-
+    oInt2Char,
+    oStri2Int,
     //In-out
     oRead,
     oWrite,
@@ -67,8 +64,17 @@ typedef enum
     oJumpifneq
 } tOp;
 
+typedef struct{
+    tOp operation;
+    char *op1;
+    char *op2;
+    char *result;
+} opItem;
+
 void opInit(opItem **opTable);
-void opInsert(opItem **opTable, size_t operation, tNodePtr op1. tNodePtr op2, tNodePtr result);
+void opInsert(opItem **opTable, size_t operation, char* op1, char* op2, char* result);
 void opDestroy(opItem **opTable);
 
+
+extern opItem *opTable;
 
